@@ -413,3 +413,332 @@ export function generatePlatformTasks(platformId: string): PlatformTask[] {
 
   return tasks;
 }
+
+import type {
+  Alarm,
+  AlarmType,
+  AlarmLevel,
+  AlarmStatistics,
+  PlatformReservation,
+  ReservationFormData,
+  TimeConflictResult,
+  CargoBatchTrace,
+  CargoTraceStep,
+  BatchSearchResult,
+} from '@/types';
+
+const alarmTypes: { type: AlarmType; title: string; level: AlarmLevel }[] = [
+  { type: 'cargo_overload', title: '仓储超限预警', level: 'warning' },
+  { type: 'vehicle_violation', title: '车辆违停告警', level: 'warning' },
+  { type: 'traffic_congestion', title: '道路拥堵预警', level: 'warning' },
+  { type: 'gate_abnormal', title: '门禁异常告警', level: 'urgent' },
+  { type: 'fire_alarm', title: '消防预警', level: 'urgent' },
+  { type: 'platform_conflict', title: '月台预约冲突', level: 'warning' },
+  { type: 'cargo_abnormal', title: '货物异常滞留', level: 'warning' },
+];
+
+export function generateAlarms(): Alarm[] {
+  const alarms: Alarm[] = [];
+  const now = new Date();
+
+  for (let i = 0; i < 15; i++) {
+    const typeInfo = alarmTypes[randomInt(0, alarmTypes.length - 1)];
+    const timestamp = new Date(now.getTime() - randomInt(0, 86400000 * 3));
+    const statusRand = Math.random();
+    let status: Alarm['status'] = 'active';
+    if (statusRand > 0.7) status = 'resolved';
+    else if (statusRand > 0.4) status = 'acknowledged';
+
+    const positions: Record<string, Position3D> = {
+      vehicle_violation: { x: randomRange(-80, 80), y: 0, z: randomRange(-50, 50) },
+      cargo_overload: { x: 50, y: randomRange(5, 25), z: randomRange(-30, 30) },
+      traffic_congestion: { x: randomRange(-60, 60), y: 0, z: 0 },
+      gate_abnormal: { x: randomInt(0, 1) === 0 ? 95 : -95, y: 0, z: randomRange(-20, 20) },
+      fire_alarm: { x: randomRange(-60, 60), y: 5, z: randomRange(-40, 40) },
+      platform_conflict: { x: 70, y: 0, z: randomRange(-30, 30) },
+      cargo_abnormal: { x: 50, y: randomRange(5, 20), z: randomRange(-20, 20) },
+    };
+
+    const targetTypes: Record<AlarmType, Alarm['targetType']> = {
+      vehicle_violation: 'vehicle',
+      cargo_overload: 'cargo',
+      traffic_congestion: 'road',
+      gate_abnormal: 'gate',
+      fire_alarm: 'cargo',
+      platform_conflict: 'platform',
+      cargo_abnormal: 'cargo',
+    };
+
+    alarms.push({
+      id: `alarm-${1000 + i}`,
+      type: typeInfo.type,
+      level: typeInfo.level,
+      title: typeInfo.title,
+      description: `${typeInfo.title}，请及时处理。详细信息：${['区域A', '区域B', '1号仓', '2号仓', '东门', '西门'][randomInt(0, 5)]}`,
+      timestamp: timestamp.toISOString().slice(0, 19).replace('T', ' '),
+      position: positions[typeInfo.type],
+      targetId: `target-${i}`,
+      targetType: targetTypes[typeInfo.type],
+      status,
+      acknowledgedBy: status !== 'active' ? '调度员张工' : undefined,
+      acknowledgedAt: status !== 'active' ? new Date(timestamp.getTime() + randomInt(60000, 3600000)).toISOString().slice(0, 19).replace('T', ' ') : undefined,
+      resolvedAt: status === 'resolved' ? new Date(timestamp.getTime() + randomInt(3600000, 7200000)).toISOString().slice(0, 19).replace('T', ' ') : undefined,
+    });
+  }
+
+  return alarms.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+export function generateAlarmStatistics(): AlarmStatistics {
+  const alarms = generateAlarms();
+  const byDate: { date: string; count: number }[] = [];
+  const now = new Date();
+
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(now.getTime() - i * 86400000);
+    byDate.push({
+      date: date.toISOString().slice(0, 10),
+      count: randomInt(5, 20),
+    });
+  }
+
+  const byType: Record<AlarmType, number> = {
+    cargo_overload: randomInt(2, 8),
+    vehicle_violation: randomInt(3, 10),
+    traffic_congestion: randomInt(2, 6),
+    gate_abnormal: randomInt(1, 4),
+    fire_alarm: randomInt(0, 2),
+    platform_conflict: randomInt(1, 5),
+    cargo_abnormal: randomInt(2, 7),
+  };
+
+  const urgent = alarms.filter((a) => a.level === 'urgent' && a.status === 'active').length;
+  const warning = alarms.filter((a) => a.level === 'warning' && a.status === 'active').length;
+
+  return {
+    total: alarms.length,
+    urgent,
+    warning,
+    byType,
+    byDate,
+  };
+}
+
+export function generateReservations(platformId?: string): PlatformReservation[] {
+  const warehouses = generateWarehouses();
+  const platforms = generatePlatforms(warehouses);
+  const targetPlatforms = platformId ? platforms.filter((p) => p.id === platformId) : platforms;
+  const reservations: PlatformReservation[] = [];
+  const now = new Date();
+
+  const statuses: PlatformReservation['status'][] = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
+  const drivers = ['张师傅', '李师傅', '王师傅', '赵师傅', '刘师傅', '陈师傅'];
+
+  for (let i = 0; i < 20; i++) {
+    const platform = targetPlatforms[i % targetPlatforms.length];
+    const startOffset = randomInt(-2, 48);
+    const startTime = new Date(now.getTime() + startOffset * 3600000);
+    const duration = randomInt(1, 4);
+    const endTime = new Date(startTime.getTime() + duration * 3600000);
+    const statusIndex = startOffset < 0 ? randomInt(3, 4) : startOffset === 0 ? randomInt(1, 2) : randomInt(0, 1);
+
+    reservations.push({
+      id: `resv-${2024000 + i}`,
+      platformId: platform.id,
+      platformName: platform.name,
+      vehicleId: `vehicle-${i + 5}`,
+      vehiclePlate: ['京A', '沪B', '粤C', '苏D', '浙E', '鲁F'][randomInt(0, 5)] + randomInt(10000, 99999),
+      driverName: drivers[randomInt(0, drivers.length - 1)],
+      driverPhone: `138${randomInt(10000000, 99999999)}`,
+      taskType: Math.random() > 0.5 ? 'loading' : 'unloading',
+      cargoType: ['电子产品', '服装', '食品', '机械配件', '化工原料'][randomInt(0, 4)],
+      cargoWeight: randomRange(5, 30),
+      plannedStartTime: startTime.toISOString().slice(0, 19).replace('T', ' '),
+      plannedEndTime: endTime.toISOString().slice(0, 19).replace('T', ' '),
+      actualStartTime: statusIndex >= 2 ? startTime.toISOString().slice(0, 19).replace('T', ' ') : undefined,
+      actualEndTime: statusIndex >= 3 ? endTime.toISOString().slice(0, 19).replace('T', ' ') : undefined,
+      status: statuses[Math.min(statusIndex, statuses.length - 1)],
+      createTime: new Date(now.getTime() - randomInt(3600000, 86400000)).toISOString().slice(0, 19).replace('T', ' '),
+      remark: Math.random() > 0.7 ? '请优先安排装卸' : undefined,
+    });
+  }
+
+  return reservations.sort((a, b) => new Date(a.plannedStartTime).getTime() - new Date(b.plannedStartTime).getTime());
+}
+
+export function checkTimeConflict(
+  platformId: string,
+  startTime: string,
+  endTime: string,
+  excludeId?: string
+): TimeConflictResult {
+  const reservations = generateReservations(platformId);
+  const start = new Date(startTime).getTime();
+  const end = new Date(endTime).getTime();
+
+  const conflictingReservations = reservations.filter((r) => {
+    if (excludeId && r.id === excludeId) return false;
+    if (r.status === 'cancelled' || r.status === 'completed') return false;
+    const rStart = new Date(r.plannedStartTime).getTime();
+    const rEnd = new Date(r.plannedEndTime).getTime();
+    return start < rEnd && end > rStart;
+  });
+
+  return {
+    hasConflict: conflictingReservations.length > 0,
+    conflictingReservations,
+  };
+}
+
+export function createReservation(data: ReservationFormData): PlatformReservation {
+  const warehouses = generateWarehouses();
+  const platforms = generatePlatforms(warehouses);
+  const platform = platforms.find((p) => p.id === data.platformId) || platforms[0];
+
+  return {
+    id: `resv-${Date.now()}`,
+    platformId: data.platformId,
+    platformName: platform.name,
+    vehicleId: `vehicle-${randomInt(100, 999)}`,
+    vehiclePlate: data.vehiclePlate,
+    driverName: data.driverName,
+    driverPhone: data.driverPhone,
+    taskType: data.taskType,
+    cargoType: data.cargoType,
+    cargoWeight: data.cargoWeight,
+    plannedStartTime: data.plannedStartTime,
+    plannedEndTime: data.plannedEndTime,
+    status: 'pending',
+    createTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    remark: data.remark,
+  };
+}
+
+export function searchBatch(keyword: string): BatchSearchResult[] {
+  const warehouses = generateWarehouses();
+  const results: BatchSearchResult[] = [];
+
+  warehouses.forEach((warehouse, whIdx) => {
+    const slots = generateCargoSlots(warehouse);
+    const occupiedSlots = slots.filter(
+      (s) => s.cargoInfo && (s.cargoInfo.batch.includes(keyword) || s.cargoInfo.name.includes(keyword))
+    );
+
+    if (occupiedSlots.length > 0) {
+      const batchMap = new Map<string, CargoSlot[]>();
+      occupiedSlots.forEach((slot) => {
+        const batch = slot.cargoInfo!.batch;
+        if (!batchMap.has(batch)) {
+          batchMap.set(batch, []);
+        }
+        batchMap.get(batch)!.push(slot);
+      });
+
+      batchMap.forEach((batchSlots, batchNo) => {
+        if (results.length < 10) {
+          results.push({
+            batchNo,
+            cargoName: batchSlots[0].cargoInfo!.name,
+            warehouseId: warehouse.id,
+            warehouseName: warehouse.name,
+            slotCount: batchSlots.length,
+            slots: batchSlots.slice(0, 20),
+          });
+        }
+      });
+    }
+  });
+
+  return results.slice(0, 10);
+}
+
+export function getBatchTrace(batchNo: string): CargoBatchTrace {
+  const warehouses = generateWarehouses();
+  const wh = warehouses[0];
+  const slots = generateCargoSlots(wh);
+  const batchSlots = slots.filter((s) => s.cargoInfo?.batch === batchNo);
+
+  const firstSlot = batchSlots[0] || slots.find((s) => s.cargoInfo) || slots[0];
+  const cargoInfo = firstSlot.cargoInfo || {
+    id: 'cargo-demo',
+    name: '电子产品',
+    type: 'A类',
+    batch: batchNo,
+    quantity: 100,
+    weight: 5,
+    inTime: '2024-01-15',
+    owner: '顺丰',
+  };
+
+  const now = new Date();
+  const steps: CargoTraceStep[] = [
+    {
+      id: 'step-1',
+      type: 'inbound',
+      timestamp: new Date(now.getTime() - 86400000 * 5).toISOString().slice(0, 19).replace('T', ' '),
+      location: '东门-入库验收区',
+      position: { x: 90, y: 0, z: 0 },
+      operator: '入库员王强',
+      description: '货物到达园区，完成验收登记',
+      status: 'completed',
+    },
+    {
+      id: 'step-2',
+      type: 'storage',
+      timestamp: new Date(now.getTime() - 86400000 * 5 + 3600000 * 2).toISOString().slice(0, 19).replace('T', ' '),
+      location: `${wh.name}-1层货架`,
+      position: firstSlot.position,
+      operator: '叉车工李明',
+      description: '货物上架存储，分配货位',
+      status: 'completed',
+    },
+    {
+      id: 'step-3',
+      type: 'sorting',
+      timestamp: new Date(now.getTime() - 86400000 * 2).toISOString().slice(0, 19).replace('T', ' '),
+      location: '分拣中心B区',
+      position: { x: 30, y: 0, z: 50 },
+      operator: '分拣员张芳',
+      description: '按订单进行分拣打包',
+      status: batchSlots.some((s) => s.status === 'pending_out') ? 'in_progress' : 'completed',
+    },
+    {
+      id: 'step-4',
+      type: 'outbound',
+      timestamp: new Date(now.getTime() + 86400000).toISOString().slice(0, 19).replace('T', ' '),
+      location: '2号月台',
+      position: { x: 70, y: 0, z: -20 },
+      operator: '出库员赵伟',
+      description: '装车出库，发往目的地',
+      status: batchSlots.some((s) => s.status === 'pending_out') ? 'pending' : 'completed',
+    },
+  ];
+
+  if (batchSlots.some((s) => s.status === 'abnormal')) {
+    steps.push({
+      id: 'step-abnormal',
+      type: 'abnormal',
+      timestamp: new Date(now.getTime() - 86400000).toISOString().slice(0, 19).replace('T', ' '),
+      location: `${wh.name}-异常品区`,
+      position: { x: 55, y: 3, z: 25 },
+      operator: '质检员陈静',
+      description: '发现质量异常，待处理',
+      status: 'in_progress',
+    });
+  }
+
+  return {
+    batchNo,
+    cargoName: cargoInfo.name,
+    supplier: ['深圳华为', '杭州阿里', '北京京东', '上海圆通'][randomInt(0, 3)],
+    orderNo: `ORD${2024}${randomInt(100000, 999999)}`,
+    totalQuantity: batchSlots.reduce((sum, s) => sum + (s.cargoInfo?.quantity || 0), 0) || cargoInfo.quantity * 10,
+    totalWeight: batchSlots.reduce((sum, s) => sum + (s.cargoInfo?.weight || 0), 0) || cargoInfo.weight * 10,
+    inTime: cargoInfo.inTime,
+    expectedOutTime: cargoInfo.expectedOutTime,
+    actualOutTime: batchSlots.every((s) => s.status === 'empty') ? new Date().toISOString().slice(0, 10) : undefined,
+    status: batchSlots.some((s) => s.status === 'abnormal') ? 'abnormal' : batchSlots.some((s) => s.status === 'occupied' || s.status === 'pending_out') ? 'in_storage' : 'outbound',
+    steps,
+    slotIds: batchSlots.map((s) => s.id),
+  };
+}

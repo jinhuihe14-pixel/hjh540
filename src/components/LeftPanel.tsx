@@ -15,11 +15,18 @@ import {
   Search,
   Package,
   AlertTriangle,
+  Bell,
+  Calendar,
+  BoxSelect,
+  Download,
+  BookmarkPlus,
 } from 'lucide-react';
 import { useParkStore } from '@/store/parkStore';
 import type { LayerType, HeatmapType, VehicleStatus, VehicleType } from '@/types';
 import { Button, Input, Select, Tag } from 'antd';
 import { pathApi } from '@/api';
+import { getCurrentCameraView } from '@/three/ParkScene';
+import { message } from 'antd';
 
 const layerConfig: { type: LayerType; label: string; icon: React.ReactNode }[] = [
   { type: 'buildings', label: '建筑', icon: <Building2 size={18} /> },
@@ -72,6 +79,13 @@ export function LeftPanel() {
   const setPlannedPath = useParkStore((state) => state.setPlannedPath);
   const pathStart = useParkStore((state) => state.pathStart);
   const pathEnd = useParkStore((state) => state.pathEnd);
+  const setShowTracePanel = useParkStore((state) => state.setShowTracePanel);
+  const setShowAlarmPanel = useParkStore((state) => state.setShowAlarmPanel);
+  const setShowReservationPanel = useParkStore((state) => state.setShowReservationPanel);
+  const alarms = useParkStore((state) => state.alarms);
+  const setIsSelecting = useParkStore((state) => state.setIsSelecting);
+  const isSelecting = useParkStore((state) => state.isSelecting);
+  const exportWithWatermark = useParkStore((state) => state.exportWithWatermark);
 
   const vehicles = useParkStore((state) => state.vehicles);
   const warehouses = useParkStore((state) => state.warehouses);
@@ -122,13 +136,19 @@ export function LeftPanel() {
   };
 
   const handleSaveView = () => {
-    const newView = {
-      id: `view-${Date.now()}`,
-      name: `自定义视角 ${cameraViews.length - 2}`,
-      position: { x: 0, y: 100, z: 100 },
-      target: { x: 0, y: 0, z: 0 },
-    };
-    addCameraView(newView);
+    const currentView = getCurrentCameraView();
+    if (currentView) {
+      const newView = {
+        id: `view-${Date.now()}`,
+        name: `自定义视角 ${cameraViews.length - 2}`,
+        position: currentView.position,
+        target: currentView.target,
+      };
+      addCameraView(newView);
+      message.success('视角已收藏');
+    } else {
+      message.warning('无法获取当前视角');
+    }
   };
 
   const handleSelectVehicle = (id: string) => {
@@ -477,7 +497,68 @@ export function LeftPanel() {
         )}
       </div>
 
-      <div className="p-3 border-t border-slate-700/50">
+      <div className="p-3 border-t border-slate-700/50 space-y-2">
+        <div className="grid grid-cols-4 gap-1">
+          <button
+            onClick={() => setShowTracePanel(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-xs"
+            title="批次追溯"
+          >
+            <Package size={16} className="text-yellow-400" />
+            <span className="text-gray-300">追溯</span>
+          </button>
+          <button
+            onClick={() => setShowAlarmPanel(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-xs relative"
+            title="告警中心"
+          >
+            <Bell size={16} className="text-red-400" />
+            <span className="text-gray-300">告警</span>
+            {alarms.filter((a) => a.status === 'active').length > 0 && (
+              <span className="absolute top-0 right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                {alarms.filter((a) => a.status === 'active').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setShowReservationPanel(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-xs"
+            title="月台预约"
+          >
+            <Calendar size={16} className="text-green-400" />
+            <span className="text-gray-300">预约</span>
+          </button>
+          <button
+            onClick={() => setIsSelecting(!isSelecting)}
+            className={`flex flex-col items-center gap-1 p-2 rounded transition-colors text-xs ${
+              isSelecting ? 'bg-blue-600/50 text-white' : 'bg-slate-800/50 hover:bg-slate-700/50'
+            }`}
+            title="区域框选"
+          >
+            <BoxSelect size={16} className={isSelecting ? 'text-white' : 'text-blue-400'} />
+            <span className={isSelecting ? 'text-white' : 'text-gray-300'}>框选</span>
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            size="small"
+            icon={<Download size={12} />}
+            onClick={() => exportWithWatermark('screenshot')}
+            block
+          >
+            导出截图
+          </Button>
+          <Button
+            size="small"
+            icon={<BookmarkPlus size={12} />}
+            onClick={handleSaveView}
+            block
+          >
+            收藏视角
+          </Button>
+        </div>
+
         <div className="flex items-center gap-2">
           <Input
             size="small"

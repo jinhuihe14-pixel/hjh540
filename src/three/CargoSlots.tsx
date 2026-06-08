@@ -15,16 +15,18 @@ const statusColors: Record<string, string> = {
 interface SlotProps {
   slot: CargoSlot;
   isSelected: boolean;
+  isHighlighted: boolean;
   onClick: () => void;
 }
 
-function SlotCube({ slot, isSelected, onClick }: SlotProps) {
+function SlotCube({ slot, isSelected, isHighlighted, onClick }: SlotProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const color = statusColors[slot.status];
+  const highlightColor = '#f1c40f';
 
   useFrame(({ clock }) => {
-    if (meshRef.current && isSelected) {
+    if (meshRef.current && (isSelected || isHighlighted)) {
       meshRef.current.scale.setScalar(1 + Math.sin(clock.getElapsedTime() * 3) * 0.05);
     }
   });
@@ -49,17 +51,17 @@ function SlotCube({ slot, isSelected, onClick }: SlotProps) {
     >
       <boxGeometry args={[slot.size.x, slot.size.y, slot.size.z]} />
       <meshStandardMaterial
-        color={isSelected ? '#f1c40f' : color}
+        color={isSelected || isHighlighted ? highlightColor : color}
         transparent
         opacity={slot.status === 'empty' ? 0.3 : 0.85}
-        emissive={isSelected || hovered ? color : '#000000'}
-        emissiveIntensity={isSelected ? 0.5 : hovered ? 0.2 : 0}
+        emissive={isSelected || isHighlighted || hovered ? (isSelected || isHighlighted ? highlightColor : color) : '#000000'}
+        emissiveIntensity={isSelected || isHighlighted ? 0.6 : hovered ? 0.2 : 0}
       />
 
-      {(hovered || isSelected) && (
+      {(hovered || isSelected || isHighlighted) && (
         <lineSegments>
-          <edgesGeometry args={[new THREE.BoxGeometry(slot.size.x * 1.05, slot.size.y * 1.05, slot.size.z * 1.05)]} />
-          <lineBasicMaterial color={isSelected ? '#f1c40f' : '#ffffff'} linewidth={2} />
+          <edgesGeometry args={[new THREE.BoxGeometry(slot.size.x * 1.1, slot.size.y * 1.1, slot.size.z * 1.1)]} />
+          <lineBasicMaterial color={isSelected || isHighlighted ? highlightColor : '#ffffff'} linewidth={2} />
         </lineSegments>
       )}
     </mesh>
@@ -75,6 +77,7 @@ export function CargoSlots({ slots, warehouseId }: CargoSlotsProps) {
   const selectSlot = useParkStore((state) => state.selectSlot);
   const selectedSlotId = useParkStore((state) => state.selectedSlotId);
   const currentWarehouseId = useParkStore((state) => state.currentWarehouseId);
+  const highlightSlotIds = useParkStore((state) => state.highlightSlotIds);
 
   if (currentWarehouseId !== warehouseId) return null;
 
@@ -87,6 +90,7 @@ export function CargoSlots({ slots, warehouseId }: CargoSlotsProps) {
           key={slot.id}
           slot={slot}
           isSelected={slot.id === selectedSlotId}
+          isHighlighted={highlightSlotIds.includes(slot.id)}
           onClick={() => selectSlot(slot.id === selectedSlotId ? null : slot.id)}
         />
       ))}

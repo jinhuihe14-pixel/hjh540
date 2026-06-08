@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState, useImperativeHandle, forwardRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
@@ -13,18 +13,22 @@ import { CargoSlots } from './CargoSlots';
 import { Heatmap } from './Heatmap';
 import { PathLine } from './PathLine';
 import { useParkStore } from '@/store/parkStore';
-import type { Position3D } from '@/types';
+import type { Position3D, CameraView } from '@/types';
 
 interface CameraControllerProps {
   targetPosition?: Position3D;
   targetLookAt?: Position3D;
+  onCameraChange?: (position: Position3D, target: Position3D) => void;
 }
 
-function CameraController({ targetPosition, targetLookAt }: CameraControllerProps) {
+let currentCameraView: { position: Position3D; target: Position3D } | null = null;
+
+function CameraController({ targetPosition, targetLookAt, onCameraChange }: CameraControllerProps) {
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
   const targetPos = useRef<THREE.Vector3 | null>(null);
   const targetLook = useRef<THREE.Vector3 | null>(null);
+  const lastUpdateRef = useRef(0);
 
   useEffect(() => {
     if (targetPosition) {
@@ -35,12 +39,31 @@ function CameraController({ targetPosition, targetLookAt }: CameraControllerProp
     }
   }, [targetPosition, targetLookAt]);
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     if (targetPos.current) {
       camera.position.lerp(targetPos.current, delta * 2);
       if (targetLook.current && controlsRef.current) {
         controlsRef.current.target.lerp(targetLook.current, delta * 2);
         controlsRef.current.update();
+      }
+    }
+
+    const now = clock.getElapsedTime();
+    if (now - lastUpdateRef.current > 0.1) {
+      lastUpdateRef.current = now;
+      if (controlsRef.current) {
+        const pos = camera.position;
+        const tgt = controlsRef.current.target;
+        currentCameraView = {
+          position: { x: pos.x, y: pos.y, z: pos.z },
+          target: { x: tgt.x, y: tgt.y, z: tgt.z },
+        };
+        if (onCameraChange) {
+          onCameraChange(
+            { x: pos.x, y: pos.y, z: pos.z },
+            { x: tgt.x, y: tgt.y, z: tgt.z }
+          );
+        }
       }
     }
   });
@@ -58,6 +81,10 @@ function CameraController({ targetPosition, targetLookAt }: CameraControllerProp
       target={[0, 0, 0]}
     />
   );
+}
+
+export function getCurrentCameraView() {
+  return currentCameraView;
 }
 
 function SceneContent() {

@@ -87,6 +87,9 @@ export interface CargoInfo {
   inTime: string;
   expectedOutTime?: string;
   owner: string;
+  supplier?: string;
+  orderNo?: string;
+  spec?: string;
 }
 
 export interface Vehicle {
@@ -195,4 +198,122 @@ export interface SimulationResult {
   totalThroughput: number;
   platformUtilization: number;
   hotspots: Position2D[];
+}
+
+export type TraceStepType = 'inbound' | 'storage' | 'sorting' | 'outbound' | 'abnormal';
+
+export interface CargoTraceStep {
+  id: string;
+  type: TraceStepType;
+  timestamp: string;
+  location: string;
+  position: Position3D;
+  operator?: string;
+  description: string;
+  status: 'completed' | 'in_progress' | 'pending';
+}
+
+export interface CargoBatchTrace {
+  batchNo: string;
+  cargoName: string;
+  supplier: string;
+  orderNo: string;
+  totalQuantity: number;
+  totalWeight: number;
+  inTime: string;
+  expectedOutTime?: string;
+  actualOutTime?: string;
+  status: 'in_storage' | 'outbound' | 'abnormal';
+  steps: CargoTraceStep[];
+  slotIds: string[];
+}
+
+export type AlarmLevel = 'warning' | 'urgent';
+export type AlarmType = 'cargo_overload' | 'vehicle_violation' | 'traffic_congestion' | 'gate_abnormal' | 'fire_alarm' | 'platform_conflict' | 'cargo_abnormal';
+
+export interface Alarm {
+  id: string;
+  type: AlarmType;
+  level: AlarmLevel;
+  title: string;
+  description: string;
+  timestamp: string;
+  position: Position3D;
+  targetId: string;
+  targetType: 'vehicle' | 'cargo' | 'platform' | 'gate' | 'road';
+  status: 'active' | 'acknowledged' | 'resolved';
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
+}
+
+export interface AlarmStatistics {
+  total: number;
+  urgent: number;
+  warning: number;
+  byType: Record<AlarmType, number>;
+  byDate: { date: string; count: number }[];
+}
+
+export interface PlatformReservation {
+  id: string;
+  platformId: string;
+  platformName: string;
+  vehicleId: string;
+  vehiclePlate: string;
+  driverName: string;
+  driverPhone?: string;
+  taskType: 'loading' | 'unloading';
+  cargoType: string;
+  cargoWeight: number;
+  plannedStartTime: string;
+  plannedEndTime: string;
+  actualStartTime?: string;
+  actualEndTime?: string;
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'expired';
+  createTime: string;
+  remark?: string;
+}
+
+export interface ReservationFormData {
+  platformId: string;
+  vehiclePlate: string;
+  driverName: string;
+  driverPhone?: string;
+  taskType: 'loading' | 'unloading';
+  cargoType: string;
+  cargoWeight: number;
+  plannedStartTime: string;
+  plannedEndTime: string;
+  remark?: string;
+}
+
+export interface TimeConflictResult {
+  hasConflict: boolean;
+  conflictingReservations: PlatformReservation[];
+}
+
+export interface SelectionStats {
+  slotCount: number;
+  occupiedSlots: number;
+  vehicleCount: number;
+  throughput: number;
+  area: number;
+}
+
+export interface ExportConfig {
+  parkName: string;
+  timestamp: string;
+  type: 'heatmap' | 'screenshot' | 'report';
+}
+
+export type HighlightMode = 'row' | 'column' | 'shelf' | 'none';
+
+export interface BatchSearchResult {
+  batchNo: string;
+  cargoName: string;
+  warehouseId: string;
+  warehouseName: string;
+  slotCount: number;
+  slots: CargoSlot[];
 }
