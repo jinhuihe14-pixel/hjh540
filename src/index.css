@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0f172a;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+.ant-card {
+  background: transparent !important;
+}
+
+.ant-card-head {
+  color: white !important;
+  border-bottom-color: #334155 !important;
+}
+
+.ant-card-body {
+  color: #e2e8f0 !important;
+}
+
+.ant-select-selector {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: white !important;
+}
+
+.ant-select-arrow {
+  color: #94a3b8 !important;
+}
+
+.ant-input {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: white !important;
+}
+
+.ant-input::placeholder {
+  color: #64748b !important;
+}
+
+.ant-btn-primary {
+  background-color: #2563eb !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #3b82f6 !important;
+}
+
+.ant-drawer-title {
+  color: white !important;
+}
+
+.ant-drawer-close {
+  color: #94a3b8 !important;
+}
+
+.ant-drawer-close:hover {
+  color: white !important;
+}
+
+.ant-table {
+  background: transparent !important;
+}
+
+.ant-table-thead > tr > th {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+.ant-table-tbody > tr > td {
+  background: transparent !important;
+  border-bottom: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: rgba(30, 41, 59, 0.5) !important;
+}
+
+.ant-slider-track {
+  background-color: #3b82f6 !important;
+}
+
+.ant-slider-rail {
+  background-color: #334155 !important;
+}
+
+.ant-slider-handle {
+  border-color: #3b82f6 !important;
+}
+
+.ant-switch {
+  background-color: #334155 !important;
+}
+
+.ant-switch-checked {
+  background-color: #2563eb !important;
+}
+
+.ant-progress-bg {
+  background-color: #3b82f6 !important;
+}
+
+.ant-progress-text {
+  color: #94a3b8 !important;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
