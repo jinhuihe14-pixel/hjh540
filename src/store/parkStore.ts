@@ -527,7 +527,7 @@ export const useParkStore = create<ParkState>((set, get) => ({
   setIsSelecting: (selecting) => set({ isSelecting: selecting }),
 
   calculateSelectionStats: () => {
-    const { selectionBox, cargoSlots, vehicles, warehouses } = get();
+    const { selectionBox, cargoSlots, vehicles } = get();
     if (!selectionBox) {
       set({ selectionStats: null });
       return;
@@ -574,3 +574,8 @@ export const useParkStore = create<ParkState>((set, get) => ({
     return Promise.resolve(watermark);
   },
 }));
+
+// Debug: Expose store globally
+if (typeof window !== 'undefined') {
+  (window as any).__parkStore = useParkStore;
+}

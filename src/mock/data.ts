@@ -9,7 +9,6 @@ import type {
   Gate,
   HeatmapData,
   Position3D,
-  Position2D,
   CargoStatus,
   VehicleStatus,
   VehicleType,
@@ -376,7 +375,7 @@ export function generatePath(start: Position3D, end: Position3D): PathPoint[] {
   return path;
 }
 
-export function runSimulation(config: SimulationConfig): SimulationResult {
+export function runSimulation(): SimulationResult {
   return {
     avgSpeed: randomRange(10, 25),
     maxCongestion: randomRange(0.3, 0.9),
@@ -618,7 +617,7 @@ export function searchBatch(keyword: string): BatchSearchResult[] {
   const warehouses = generateWarehouses();
   const results: BatchSearchResult[] = [];
 
-  warehouses.forEach((warehouse, whIdx) => {
+  warehouses.forEach((warehouse) => {
     const slots = generateCargoSlots(warehouse);
     const occupiedSlots = slots.filter(
       (s) => s.cargoInfo && (s.cargoInfo.batch.includes(keyword) || s.cargoInfo.name.includes(keyword))
@@ -654,11 +653,22 @@ export function searchBatch(keyword: string): BatchSearchResult[] {
 
 export function getBatchTrace(batchNo: string): CargoBatchTrace {
   const warehouses = generateWarehouses();
-  const wh = warehouses[0];
-  const slots = generateCargoSlots(wh);
-  const batchSlots = slots.filter((s) => s.cargoInfo?.batch === batchNo);
+  let foundWarehouse: Warehouse | null = null;
+  let batchSlots: CargoSlot[] = [];
 
-  const firstSlot = batchSlots[0] || slots.find((s) => s.cargoInfo) || slots[0];
+  for (const wh of warehouses) {
+    const slots = generateCargoSlots(wh);
+    const matchingSlots = slots.filter((s) => s.cargoInfo?.batch === batchNo);
+    if (matchingSlots.length > 0) {
+      foundWarehouse = wh;
+      batchSlots = matchingSlots;
+      break;
+    }
+  }
+
+  const wh = foundWarehouse || warehouses[0];
+  const allSlots = foundWarehouse ? generateCargoSlots(foundWarehouse) : generateCargoSlots(warehouses[0]);
+  const firstSlot = batchSlots[0] || allSlots.find((s) => s.cargoInfo) || allSlots[0];
   const cargoInfo = firstSlot.cargoInfo || {
     id: 'cargo-demo',
     name: '电子产品',

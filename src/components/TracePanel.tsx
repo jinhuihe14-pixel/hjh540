@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Search,
   Package,
@@ -57,10 +57,6 @@ export function TracePanel() {
   const handleLocate = (batchNo: string) => {
     locateBatch(batchNo);
   };
-
-  const selectedResult = useMemo(() => {
-    return batchSearchResults.find((r) => r.batchNo === selectedBatchNo);
-  }, [batchSearchResults, selectedBatchNo]);
 
   return (
     <div className="h-full flex flex-col bg-slate-900/95 backdrop-blur-sm">

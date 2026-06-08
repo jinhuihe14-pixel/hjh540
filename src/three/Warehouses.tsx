@@ -13,8 +13,10 @@ function WarehouseBuilding({ warehouse }: WarehouseProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const selectWarehouse = useParkStore((state) => state.selectWarehouse);
   const selectedWarehouseId = useParkStore((state) => state.selectedWarehouseId);
+  const currentWarehouseId = useParkStore((state) => state.currentWarehouseId);
   const loadWarehouseSlots = useParkStore((state) => state.loadWarehouseSlots);
   const isSelected = selectedWarehouseId === warehouse.id;
+  const isCurrent = currentWarehouseId === warehouse.id;
 
   const handleClick = () => {
     if (!isSelected) {
@@ -27,6 +29,7 @@ function WarehouseBuilding({ warehouse }: WarehouseProps) {
 
   const occupancyRate = warehouse.occupiedSlots / warehouse.totalSlots;
   const statusColor = occupancyRate > 0.8 ? '#e74c3c' : occupancyRate > 0.5 ? '#f39c12' : '#27ae60';
+  const buildingOpacity = isCurrent ? 0.15 : 1;
 
   return (
     <group position={[warehouse.position.x, warehouse.position.y, warehouse.position.z]}>
@@ -54,19 +57,21 @@ function WarehouseBuilding({ warehouse }: WarehouseProps) {
           color={isSelected ? '#6ab0ff' : '#5a6c7d'}
           emissive={isSelected ? '#4a90d9' : '#1a2530'}
           emissiveIntensity={isSelected ? 0.3 : 0.1}
+          transparent
+          opacity={buildingOpacity}
         />
       </mesh>
 
       {Array.from({ length: warehouse.floors }).map((_, floorIdx) => (
         <mesh key={`floor-${floorIdx}`} position={[warehouse.size.x / 2 + 0.01, (floorIdx + 1) * (warehouse.size.y / warehouse.floors), 0]} rotation={[0, Math.PI / 2, 0]}>
           <planeGeometry args={[warehouse.size.z, 0.3]} />
-          <meshStandardMaterial color="#f0f5ff" emissive="#88ccff" emissiveIntensity={0.2} />
+          <meshStandardMaterial color="#f0f5ff" emissive="#88ccff" emissiveIntensity={0.2} transparent opacity={buildingOpacity} />
         </mesh>
       ))}
 
       <mesh position={[0, warehouse.size.y + 0.3, 0]}>
         <boxGeometry args={[warehouse.size.x * 0.6, 0.6, 4]} />
-        <meshStandardMaterial color={statusColor} />
+        <meshStandardMaterial color={statusColor} transparent opacity={buildingOpacity > 0.5 ? 1 : buildingOpacity * 2} />
       </mesh>
 
       {(hovered || isSelected) && (

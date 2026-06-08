@@ -7,6 +7,7 @@ export function SelectionTool() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const startPos = useRef<{ x: number; y: number } | null>(null);
   const endPos = useRef<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
   const isSelecting = useParkStore((state) => state.isSelecting);

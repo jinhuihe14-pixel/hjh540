@@ -230,7 +230,7 @@ export const pathApi = {
 
 export const simulationApi = {
   runSimulation: async (config: SimulationConfig): Promise<SimulationResult> => {
-    if (USE_MOCK) return mock.runSimulation(config);
+    if (USE_MOCK) return mock.runSimulation();
     return api.post<SimulationResult>('/simulation/run', config);
   },
 };

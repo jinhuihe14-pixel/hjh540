@@ -131,7 +131,7 @@ export function ReservationPanel() {
       form.resetFields();
       setActiveTab('list');
       setHasConflict(false);
-    } catch (err) {
+    } catch {
       message.error('提交失败，请重试');
     } finally {
       setSubmitting(false);

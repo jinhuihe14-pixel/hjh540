@@ -6,7 +6,6 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  MapPin,
   Filter,
   X,
   BarChart3,
@@ -301,7 +300,7 @@ export function AlarmPanel() {
             <Select
               size="small"
               value={typeFilter}
-              onChange={(val) => setTypeFilter(val as any)}
+              onChange={(val) => setTypeFilter(val as AlarmType | 'all')}
               style={{ width: 120 }}
               options={[
                 { value: 'all', label: '全部类型' },
@@ -314,7 +313,7 @@ export function AlarmPanel() {
             <Select
               size="small"
               value={levelFilter}
-              onChange={(val) => setLevelFilter(val as any)}
+              onChange={(val) => setLevelFilter(val as AlarmLevel | 'all')}
               style={{ width: 110 }}
               options={[
                 { value: 'all', label: '全部等级' },
